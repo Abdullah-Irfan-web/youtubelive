@@ -36,22 +36,19 @@ app.post('/upload', upload.single('video'), (req, res) => {
 
   const streamName = `stream-${userId}`;
 
-  // First: stop and delete the stream if it's already running
-  const stopCmd = `pm2 delete ${streamName} || true`;
-
-  exec(stopCmd, (stopErr) => {
-    if (stopErr) {
-      console.warn(`Warning: could not stop previous stream (${streamName})`, stopErr.message);
-    }
-
-    const command = `pm2 start streamer.js --name "${streamName}" -- ${videoUrl} ${streamKey}`;
-
+  // First, delete the existing stream if it's already running
+  const stopCmd = `pm2 delete ${streamName}`;
+  
+  exec(stopCmd, () => {
+    // Even if the stream doesn't exist, this will silently fail and continue
+    const command = `pm2 start -f streamer.js --name "${streamName}" -- ${videoUrl} ${streamKey}`;
+    
     exec(command, (err, stdout, stderr) => {
       if (err) {
-        console.error('Error running stream:', stderr);
+        console.error('Error starting new stream:', stderr);
         return res.status(500).json({ error: 'Failed to start streaming' });
       }
-
+  
       console.log(`Started new stream for user ${userId}`);
       return res.json({
         message: 'Streaming started',
@@ -61,6 +58,7 @@ app.post('/upload', upload.single('video'), (req, res) => {
       });
     });
   });
+  
 });
 
 
