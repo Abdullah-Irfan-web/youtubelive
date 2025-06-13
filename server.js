@@ -16,7 +16,7 @@ const upload = multer({
   storage: multerS3({
     s3,
     bucket: process.env.AWS_BUCKET_NAME,
-    acl: 'public-read',
+   
     key: (req, file, cb) => {
       const filename = `${Date.now()}-${file.originalname}`;
       cb(null, filename);
