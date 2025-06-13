@@ -24,6 +24,8 @@ const upload = multer({
   }),
 });
 
+const { exec } = require('child_process');
+
 app.post('/upload', upload.single('video'), (req, res) => {
   const videoUrl = req.file.location;
   const { streamKey, userId } = req.body;
@@ -33,25 +35,26 @@ app.post('/upload', upload.single('video'), (req, res) => {
   }
 
   const streamName = `stream-${userId}`;
-  const checkCommand = `pm2 describe ${streamName}`;
 
-  // Check if a process already exists
-  exec(checkCommand, (err, stdout, stderr) => {
-    const alreadyRunning = stdout && stdout.includes('pm_id');
+  // First: stop and delete the stream if it's already running
+  const stopCmd = `pm2 delete ${streamName} || true`;
 
-    const command = alreadyRunning
-      ? `pm2 restart ${streamName} -- ${videoUrl} ${streamKey}`
-      : `pm2 start streamer.js --name "${streamName}" -- ${videoUrl} ${streamKey}`;
+  exec(stopCmd, (stopErr) => {
+    if (stopErr) {
+      console.warn(`Warning: could not stop previous stream (${streamName})`, stopErr.message);
+    }
+
+    const command = `pm2 start streamer.js --name "${streamName}" -- ${videoUrl} ${streamKey}`;
 
     exec(command, (err, stdout, stderr) => {
       if (err) {
         console.error('Error running stream:', stderr);
-        return res.status(500).json({ error: 'Failed to start/restart streaming' });
+        return res.status(500).json({ error: 'Failed to start streaming' });
       }
 
-      console.log(`${alreadyRunning ? 'Restarted' : 'Started'} stream for user ${userId}`);
+      console.log(`Started new stream for user ${userId}`);
       return res.json({
-        message: `${alreadyRunning ? 'Stream restarted' : 'Streaming started'}`,
+        message: 'Streaming started',
         videoUrl,
         userId,
         streamName,
@@ -59,6 +62,7 @@ app.post('/upload', upload.single('video'), (req, res) => {
     });
   });
 });
+
 
 
 app.listen(process.env.PORT, () => {
