@@ -40,7 +40,7 @@ app.post('/upload', upload.single('video'), (req, res) => {
   const stopCmd = `pm2 delete ${streamName}`;
   
   exec(stopCmd, () => {
-    // Even if the stream doesn't exist, this will silently fail and continue
+   
     const command = `pm2 start -f streamer.js --name "${streamName}" -- ${videoUrl} ${streamKey}`;
     
     exec(command, (err, stdout, stderr) => {
