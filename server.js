@@ -32,24 +32,34 @@ app.post('/upload', upload.single('video'), (req, res) => {
     return res.status(400).json({ error: 'Missing streamKey or userId' });
   }
 
-  const streamName = `stream-${userId}-${Date.now()}`;
-  const command = `pm2 start streamer.js --name "${streamName}" -- ${videoUrl} ${streamKey}`;
+  const streamName = `stream-${userId}`;
+  const checkCommand = `pm2 describe ${streamName}`;
 
-  exec(command, (err, stdout, stderr) => {
-    if (err) {
-      console.error('Error running stream:', stderr);
-      return res.status(500).json({ error: 'Failed to start streaming' });
-    }
+  // Check if a process already exists
+  exec(checkCommand, (err, stdout, stderr) => {
+    const alreadyRunning = stdout && stdout.includes('pm_id');
 
-    console.log(`Started stream for user ${userId}`);
-    return res.json({
-      message: 'Streaming started',
-      videoUrl,
-      userId,
-      streamName,
+    const command = alreadyRunning
+      ? `pm2 restart ${streamName} -- ${videoUrl} ${streamKey}`
+      : `pm2 start streamer.js --name "${streamName}" -- ${videoUrl} ${streamKey}`;
+
+    exec(command, (err, stdout, stderr) => {
+      if (err) {
+        console.error('Error running stream:', stderr);
+        return res.status(500).json({ error: 'Failed to start/restart streaming' });
+      }
+
+      console.log(`${alreadyRunning ? 'Restarted' : 'Started'} stream for user ${userId}`);
+      return res.json({
+        message: `${alreadyRunning ? 'Stream restarted' : 'Streaming started'}`,
+        videoUrl,
+        userId,
+        streamName,
+      });
     });
   });
 });
+
 
 app.listen(process.env.PORT, () => {
   console.log(`Server running on port ${process.env.PORT}`);

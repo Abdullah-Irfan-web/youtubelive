@@ -13,6 +13,7 @@ const rtmpUrl = `${process.env.YOUTUBE_RTMP_BASE}${streamKey}`;
 
 const ffmpegArgs = [
   '-re',
+  '-stream_loop', '-1',   
   '-i', videoUrl,
   '-c:v', 'libx264',
   '-preset', 'veryfast',
