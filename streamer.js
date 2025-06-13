@@ -30,10 +30,14 @@ const ffmpegArgs = [
 
 const ffmpeg = spawn('ffmpeg', ffmpegArgs);
 
+ffmpeg.stdout.on('data', (data) => {
+  console.log(`FFmpeg stdout: ${data}`);
+});
+
 ffmpeg.stderr.on('data', (data) => {
-  console.error(`FFmpeg error: ${data}`);
+  console.error(`FFmpeg stderr: ${data}`);
 });
 
 ffmpeg.on('close', (code) => {
-  console.log(`FFmpeg finished with exit code ${code}`);
+  console.log(`FFmpeg exited with code ${code}`);
 });
