@@ -64,6 +64,26 @@ app.post('/upload', upload.single('video'), (req, res) => {
   });
 });
 
+app.post('/end', (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing userId' });
+  }
+
+  const streamName = `stream-${userId}`;
+
+ 
+  exec(`pm2 delete ${streamName}`, (err, stdout, stderr) => {
+    if (err && !stderr.includes('process or namespace not found')) {
+      console.error(`Error stopping stream for user ${userId}:`, stderr);
+      return res.status(500).json({ error: 'Failed to stop the stream' });
+    }
+
+    console.log(`Stream stopped for user ${userId}`);
+    return res.json({ message: `Stream stopped for user ${userId}` });
+  });
+});
 
 
 
